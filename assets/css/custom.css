@@ -4,8 +4,8 @@
   --bg-soft: #ece8db;
   --bg-quote: #ecefe6;
   --bg-inline-code: #e7eee5;
-  --bg-code: #f1f7ef;
-  --bg-code-border: #c9ddc7;
+  --bg-code: #edf6ea;
+  --bg-code-border: #bdd8ba;
   --fg-main: #2c3a32;
   --fg-muted: #6b7a6f;
   --fg-heading: #1f2a23;
@@ -172,9 +172,10 @@ tt {
 
 .highlighter-rouge,
 div.highlight {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
   margin: 1em 0;
   padding: 0;
 }
@@ -182,8 +183,9 @@ div.highlight {
 pre,
 pre.highlight,
 .highlight pre {
-  background: var(--bg-code);
-  border: 1px solid var(--bg-code-border);
+  background: var(--bg-code) !important;
+  background-color: var(--bg-code) !important;
+  border: 1px solid var(--bg-code-border) !important;
   border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   color: var(--fg-main);
@@ -199,10 +201,28 @@ pre,
 
 pre code,
 .highlight code {
-  background: transparent;
-  border: 0;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: 0 !important;
   color: inherit;
   padding: 0;
+}
+
+.highlighter-rouge .highlight,
+.highlighter-rouge .highlight pre,
+.highlighter-rouge pre.highlight,
+.language-python.highlighter-rouge .highlight,
+.language-python.highlighter-rouge pre.highlight {
+  background: var(--bg-code) !important;
+  background-color: var(--bg-code) !important;
+}
+
+.highlighter-rouge .highlight {
+  border-radius: var(--radius);
+}
+
+.highlighter-rouge .highlight pre {
+  border-radius: var(--radius);
 }
 
 .highlight .k,
