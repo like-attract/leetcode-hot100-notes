@@ -31,9 +31,16 @@ title: LeetCode Hot100 错题本
 - 字典函数：`new_lst = list(dict.fromkeys(lst))`
 - 推导式：`new_lst = []; [new_lst.append(x) for x in lst if x not in new_lst]`
 
-需要使用元组，本题还需要用sorted对数组进行排序，不然[1,0,1]和[0,1,1]都会保留
+需要将内部列表转换为元组（因为列表不可哈希，元组可哈希），利用集合去重，最后转回列表
 
-`temp = list({tuple(i) for i in lst}); res = [list(i) for i in temp]`
+```tmp = set(tuple(i) for i in lst); res = [list(i) for i in tmp] ``` 
+
+`temp = {tuple(i) for i in lst}; res = [list(i) for i in temp]`
+
+**解释：** 
+
+1. **原理**：利用 Python 中 `set`（集合）元素唯一性的特性。由于列表是可变的（不可哈希），不能直接放入集合，因此先将内部列表转换为不可变的 `tuple`（元组）。 
+2. 本题还需要用sorted对数组进行排序，即`sorted(tuple(i))`，不然[1,0,1]和[0,1,1]都会保留
 
 ```python
 class Solution:
@@ -119,7 +126,7 @@ class Solution:
                 total = nums[i] + nums[left] + nums[right]
                 if total == 0:
                     ans.append([nums[i], nums[left], nums[right]])
-                    # 跳过重复值
+                    # 跳过重复值 (这一步并未感觉有多重要……)
                     while left < right and nums[left] == nums[left+1]:
                         left += 1
                     while left < right and nums[right] == nums[right-1]:
@@ -189,3 +196,6 @@ class Solution:
             res.append([0,0,0])
         return res
 ```
+
+
+
