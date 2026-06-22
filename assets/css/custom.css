@@ -4,8 +4,8 @@
   --bg-soft: #ece8db;
   --bg-quote: #ecefe6;
   --bg-inline-code: #e7eee5;
-  --bg-code: #eef4ed;
-  --bg-code-border: #d5e2d3;
+  --bg-code: #f1f7ef;
+  --bg-code-border: #c9ddc7;
   --fg-main: #2c3a32;
   --fg-muted: #6b7a6f;
   --fg-heading: #1f2a23;
@@ -170,10 +170,18 @@ tt {
   padding: 0.08em 0.35em;
 }
 
+.highlighter-rouge,
+div.highlight {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin: 1em 0;
+  padding: 0;
+}
+
 pre,
 pre.highlight,
-.highlight pre,
-div.highlight {
+.highlight pre {
   background: var(--bg-code);
   border: 1px solid var(--bg-code-border);
   border-radius: var(--radius);
@@ -184,7 +192,7 @@ div.highlight {
 pre,
 .highlight pre {
   line-height: 1.6;
-  margin: 1em 0;
+  margin: 0;
   overflow: auto;
   padding: 14px 16px;
 }
@@ -237,6 +245,18 @@ table {
 thead {
   background: var(--accent);
   color: var(--bg-surface);
+}
+
+thead th {
+  background: var(--accent);
+  color: var(--bg-surface);
+  font-weight: 700;
+}
+
+thead th strong,
+thead th b,
+thead th code {
+  color: inherit;
 }
 
 th,
