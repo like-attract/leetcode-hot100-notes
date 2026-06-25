@@ -21,6 +21,7 @@ title: LeetCode Hot100 错题本
 #15 #数组 #双指针 #嵌套列表
 
 > 输入：nums = [-1,0,1,2,-1,-4]
+> 
 > 输出：[[-1,-1,2],[-1,0,1]]
 
 ### 思路
@@ -101,6 +102,8 @@ class Solution:
 注1：` if list(set(nums))==[0] and nums.count(0)>=3: return [[0,0,0]]`
 
 现在就可以跑出来了，用时超过了5%的人……
+
+### 主角
 
 本题的主角其实是——**双指针**（#283 移动零）
 
@@ -199,3 +202,152 @@ class Solution:
 
 
 
+## [438. 找到字符串中所有字母异位词](https://leetcode.cn/problems/find-all-anagrams-in-a-string/)
+
+### 题目
+
+给定两个字符串s和p，找到s中所有和p是异位词的子串，返回这些子串的起始索引。#438 #子串 #异位词 #滑动窗口
+
+> 输入：s = "cbaebabacd", p = "abc"
+>
+> 输出：[0,6]
+
+### 思路
+
+字母异位词这题之前做过，更准确点说，是面试中被手撕过，#49 字母异位词分组
+
+```python
+def word_break(s: str, word_dict: list[str]) -> bool:
+    word_set = set(word_dict)  # 转为集合，查找 O(1)
+    n = len(s)
+    
+    # dp[i] 表示 s[0:i] 能否用字典中的单词拼成
+    dp = [False] * (n + 1)
+    dp[0] = True  # 空字符串可以被"拼成"
+    
+    for i in range(1, n + 1):
+        for word in word_set:
+            word_len = len(word)
+            # 检查：前 i-len(word) 个字符能否拼成 + 剩余部分是否等于 word
+            if i >= word_len and dp[i - word_len] and s[i - word_len:i] == word:
+                dp[i] = True
+                break  # 找到一种拼法即可
+    
+    return dp[n]
+```
+
+做# 438的过程有点不顺利，因为我想起# 49使用了集合set、动态规划，结果让自己越写越迷茫，有种技多压身，因为不精反而寸步难行。
+
+复盘一下# 49的做法：首先对词典`word_set`进行集合化，这一步其实不是必须，只是锦上添花；然后是常规的动态规划三要素：定义状态、初始化、状态转移。
+
+回到这题，如果没有什么好的思路的话，其实可以先暴力手撕，再去考虑如何优化时间复杂度。要知道一件事情，先做出来，才能考虑优化，要知道哪个是主干，哪个是开枝散叶：
+
+```python
+class Solution:
+    def findAnagrams(self, s: str, p: str) -> List[int]:
+        n1 = len(s)
+        pp = sorted(p)
+        n2 = len(pp)
+        ans = []
+
+        for i in range(n1-n2+1):
+            tmp = s[i:i+n2] # a
+            if sorted(tmp)==pp: # b
+                ans.append(i)
+        return ans
+```
+
+想法就是：==依次遍历s的子串==（复杂度$n$），==和p进行匹配==（sorted复杂度$k log k$）
+
+当时想用集合，因为集合查找是$O(1)$，但是集合也有问题：1) 集合无序：也就是说遍历 / 打印顺序不确定；2) 集合不能按下标访问，没有切片操作，所以# a的for循环与切片操作就失效了。
+
+既然集合走不通，就想着另外一条路，降低匹配的复杂度，匹配的核心目的是看切片的子串和所需的p是否字母完全相同，sorted很直观，排序后比较是否相等，但其实有个更直观的，字母的出现次数是否完全相同。
+
+```python
+def is_anagram(s: str, t: str) -> bool:
+    if len(s) != len(t):
+        return False
+    cnt = [0] * 26 # 26个小写字母，故设置26个位置
+    for c in s:
+        cnt[ord(c)-ord('a')] += 1 # 使用ord函数将字符转化成Unicode编码
+    for c in t:
+        cnt[ord(c)-ord('a')] -= 1
+    return all(x == 0 for x in cnt)
+
+from collections import Counter
+def is_anagram(s, t):
+    return Counter(s) == Counter(t)
+```
+
+这里的诀窍就是使用ord函数，再用每个字符与起始字符'a'作差，得到各自对应的下标，这样就方便统计出现次数了，虽然这里做了两遍for循环，但别忘了复杂度只看大头，所以复杂度仍是$O(k)$。也有一个简便的方式，即我们在# 15的衍生里提到的Counter函数，它可以专门统计字符串中字母出现的次数：
+
+`c = Counter('abracadabra') # Counter({'a': 5, 'b': 2, 'r': 2, 'c': 1, 'd': 1})`
+
+理论上直接替换# b可以降低复杂度，但是本题又来作妖，给了`s=['a']*20001;p=['a']*10000`，所以现在的复杂度$O(n*K)$也很大了。
+
+### 主角
+
+所以，该怎么办呢？其实我们最开始的思路没错，优化的思路偏了，的确是使用字母的出现次数工具，但是这次是降低遍历的复杂度，或者说**减少嵌套循环**。其实也就是我们的主角——**滑动窗口**。
+
+1. 先统计 p 的字母频次数组 count_p 
+2. 统计 s 前 k 个字符频次 count_win，对比两个数组是否相等 
+3. 窗口向右滑动：出窗字符计数 - 1，进窗字符计数 + 1，不用重新统计整个窗口，每次仅两次修改，O(1) 更新
+
+```python
+class Solution:
+    def findAnagrams(self, s: str, p: str) -> List[int]:
+        n, k = len(s), len(p)
+        count_p = [0] * 26 # 初始26个字母
+        count_win = [0] * 26
+        res = []
+     
+        # 初始化第一个窗口  0,1,..,k-1
+        for i in range(k):
+            count_p[ord(p[i]) - ord('a')] += 1
+            count_win[ord(s[i]) - ord('a')] += 1
+        if count_win == count_p:
+            res.append(0)
+        
+        # 滑动窗口遍历剩余位置  k,k+1,...,n-1
+        for right in range(k, n):
+            # 移除左边滑出的字符 0,1,...,n-k-1
+            left_char = s[right - k]
+            count_win[ord(left_char) - ord('a')] -= 1
+            # 添加右边新进的字符 k,k+1,...,n-1
+            new_char = s[right]
+            count_win[ord(new_char) - ord('a')] += 1
+            # 对比频次数组 1,2,...,n-k
+            if count_win == count_p:
+                res.append(right - k + 1)
+        return res
+```
+
+显而易见，此时只是多个for循环，复杂度为$O(n+k)\rightarrow O(n)$
+
+但其实可以再简便一点，使用我们的Counter函数：
+
+```python
+from collections import Counter
+class Solution:
+    def findAnagrams(self, s: str, p: str) -> List[int]:
+        d, k = Counter(p), len(p)
+        l = 0
+        res = []
+        for i, j in enumerate(s):
+            d[j] -= 1
+            while l <= i and d[j] < 0:
+                d[s[l]] += 1
+                l += 1
+            if i-l+1 == k:
+                res.append(l)
+        return res
+```
+
+- `Counter(p)`：统计模式串 `p` 每个字母出现次数，字典 `d` 初始是**需要凑齐的字符配额**
+- `k`：模式串 `p` 的长度，我们要找的窗口固定长度就是 `k`
+- `l = 0`：滑动窗口**左边界**，`i` 是循环变量充当**右边界**
+- 用字典 `d` 记录 `p` 每个字符**还缺多少个**
+- 右指针 `i` 逐个向右遍历字符 `j=s[i]`：
+  - 消耗一个配额：`d[j] -= 1`
+  - 如果该字符配额变负数 = 当前窗口里这个字符**多出来了**，必须移动左边界收缩窗口，把多余字符剔除
+- 收缩完窗口后，如果当前窗口长度刚好等于 `k`，说明窗口内字符刚好和 `p` 频次完全匹配（异位词），把左边界 `l` 存入结果
