@@ -297,6 +297,7 @@ def is_anagram(s, t):
 class Solution:
     def findAnagrams(self, s: str, p: str) -> List[int]:
         n, k = len(s), len(p)
+        if n<k: return [] # 加一步总是好的，小心题目恶心人
         count_p = [0] * 26 # 初始26个字母
         count_win = [0] * 26
         res = []
@@ -351,3 +352,107 @@ class Solution:
   - 消耗一个配额：`d[j] -= 1`
   - 如果该字符配额变负数 = 当前窗口里这个字符**多出来了**，必须移动左边界收缩窗口，把多余字符剔除
 - 收缩完窗口后，如果当前窗口长度刚好等于 `k`，说明窗口内字符刚好和 `p` 频次完全匹配（异位词），把左边界 `l` 存入结果
+
+
+
+## 栈相关
+
+**栈是一种后进先出（LIFO, Last In First Out）** 的线性数据结构：
+
+- 只能在**一端（栈顶）** 插入、删除元素
+- 入栈（push）：往栈顶添加元素
+- 出栈（pop）：取出栈顶元素
+- 栈底：另一端封闭，不能直接操作
+
+形象举例：叠盘子，最后放上去的盘子（栈顶）最先拿走。
+
+- 栈不支持随机访问，不能直接取中间元素
+- 不要用 `pop(0)` 做栈顶弹出，时间复杂度 O(n)，效率极低
+
+**Python 四种实现栈的方式**
+
+### 方式1：用列表 `list` 最简单（常用）
+
+列表尾部当作**栈顶**，`append` 入栈、`pop()` 出栈效率最高（O(1)）
+```python
+# 初始化栈
+stack = []
+
+# 1. 入栈 push
+stack.append(10)
+stack.append(20)
+stack.append(30)
+print(stack)  # [10, 20, 30]
+
+# 2. 出栈 pop
+top = stack.pop()
+print(top)     # 30
+print(stack)   # [10, 20]
+
+# 3. 查看栈顶
+if stack:
+    print(stack[-1])  # 20
+
+# 4. 判断是否为空
+print(len(stack) == 0)  # False
+
+# 5. 栈长度
+print(len(stack))  # 2
+```
+### 方式2：封装成栈类（面向对象，规范）（题# 155最小栈）
+
+```python
+class MinStack:
+    def __init__(self):
+        self.stack = []
+        self.min_stack = []  # 单调非增栈（栈顶是最小值）
+
+    def push(self, value: int) -> None:
+        self.stack.append(value)
+        if not self.min_stack or value <= self.min_stack[-1]:  # 注意是 <=！处理重复最小值
+            self.min_stack.append(value)
+
+    def pop(self) -> None:
+        if not self.stack:
+            return
+        val = self.stack.pop()
+        if val == self.min_stack[-1]:
+            self.min_stack.pop()
+
+    def top(self) -> int:
+        return self.stack[-1] if self.stack else []
+
+    def getMin(self) -> int:
+        return self.min_stack[-1] if self.min_stack else []
+```
+
+> 1. `stack`: 主栈，存所有元素。
+> 2. `min_stack`: 辅助栈，**只在 push 的值 ≤ 当前 min 时压入**；pop 时若弹出值 == min_stack[-1]，则 min_stack 也 pop。
+> 3. 所有操作均为 **O(1)** 时间，空间 O(n) 最坏。
+> 4. **避免 `insert(0, ...)` 和 `pop(0)`**：
+>    - Python list 的首部操作是 O(n)，应全部改用尾部操作（`.append()`, `.pop()`）。
+
+### 栈常见应用场景
+
+1. **括号匹配校验**（题# 20有效括号）
+   
+   ```python
+   def check_bracket(s):
+       stack = []
+       match = {')':'(', ']':'[', '}':'{'}
+       for c in s:
+           if c in match.values(): # .value()可以匹配字典的值
+               stack.append(c)
+           elif c in match: # 字典匹配的是key
+               if not stack or stack.pop() != match[c]:
+                   return False
+       return len(stack) == 0
+   
+   print(check_bracket("{[()]}"))  # True
+   print(check_bracket("{[(])}"))  # False
+   ```
+2. **表达式求值、逆波兰表达式（后缀表达式）**
+3. **函数调用栈（递归底层本质就是栈）**
+4. **浏览器前进后退、编辑器撤销（undo）**
+5. **进制转换（十进制转二进制）**
+6. **字符串反转**
