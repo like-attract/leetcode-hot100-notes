@@ -368,6 +368,7 @@ class Solution:
 
 - 栈不支持随机访问，不能直接取中间元素
 - 不要用 `pop(0)` 做栈顶弹出，时间复杂度 O(n)，效率极低
+- 出栈pop, 栈顶peek一定要保证栈非空！
 
 **Python 四种实现栈的方式**
 
@@ -389,8 +390,8 @@ top = stack.pop()
 print(top)     # 30
 print(stack)   # [10, 20]
 
-# 3. 查看栈顶
-if stack:
+# 3. 查看栈顶 peek
+if stack: #保证非空
     print(stack[-1])  # 20
 
 # 4. 判断是否为空
@@ -435,7 +436,7 @@ class MinStack:
 ### 栈常见应用场景
 
 1. **括号匹配校验**（题# 20有效括号）
-   
+
    ```python
    def check_bracket(s):
        stack = []
@@ -451,8 +452,79 @@ class MinStack:
    print(check_bracket("{[()]}"))  # True
    print(check_bracket("{[(])}"))  # False
    ```
-2. **表达式求值、逆波兰表达式（后缀表达式）**
-3. **函数调用栈（递归底层本质就是栈）**
-4. **浏览器前进后退、编辑器撤销（undo）**
-5. **进制转换（十进制转二进制）**
-6. **字符串反转**
+2. 题#394 字符串解码
+
+```python
+# 输入：s = "3[a2[c]]"  输出："accaccacc"
+class Solution:
+    def decodeString(self, s: str) -> str:
+        stack, times = [],[]
+        i,n = 0,len(s)
+        
+        while i<n:
+            c = s[i]
+            if c == '[':
+                b = []
+                while stack and stack[-1].isdigit():
+                    b.append(stack.pop())
+                times.append(int(''.join(b[::-1])) if b else 1) #本题倍数1无意义
+                stack.append(c)
+            elif c == ']':
+                a = []
+                while stack and stack[-1] != '[':
+                    a.append(stack.pop()) #弹出所有的字符
+                stack.pop() #弹出'['
+                time = times.pop()
+                aa = ''.join(a[::-1])*time #记得反转
+                stack.append(aa)
+            else:
+                stack.append(c)
+            i+=1
+        return ''.join(stack)
+
+
+class Solution:
+    def decodeString(self, s: str) -> str:
+        stack = []
+        for c in s:
+            if c == ']':
+                # 弹出字符直到 '['
+                chars = []
+                while stack and stack[-1] != '[':
+                    chars.append(stack.pop())
+                stack.pop()  # pop '['
+                # 弹出数字
+                num_str = []
+                while stack and stack[-1].isdigit():
+                    num_str.append(stack.pop())
+                repeat = int(''.join(num_str[::-1])) if num_str else 1
+                # 拼接并压回
+                decoded = ''.join(chars[::-1]) * repeat
+                stack.append(decoded)
+            else:
+                stack.append(c)
+        return ''.join(stack)
+```
+
+3. 题#739 每日温度
+
+```python
+# 返回每一天还有几天温度更高（严格高），没有返回0
+# 输入: temperatures = [73,74,75,71,69,72,76,73] 输出: [1,1,4,2,1,1,0,0]
+class Solution:
+    def dailyTemperatures(self, temperatures: List[int]) -> List[int]:
+        n = len(temperatures)
+        ans = [0] * n
+        st = []  # todolist
+        for i, t in enumerate(temperatures):
+            while st and t > temperatures[st[-1]]: #当前温度最高
+                j = st.pop() #历史温度最高的下标
+                ans[j] = i - j #历史经过这么多天温度更高[题意]
+            st.append(i) #永远只记录当前温度
+        return ans
+```
+
+
+
+
+
