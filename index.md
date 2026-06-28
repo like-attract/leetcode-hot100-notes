@@ -34,7 +34,7 @@ title: LeetCode Hot100 错题本
 
 需要将内部列表转换为元组（因为列表不可哈希，元组可哈希），利用集合去重，最后转回列表
 
-```tmp = set(tuple(i) for i in lst); res = [list(i) for i in tmp] ``` 
+`tmp = set(tuple(i) for i in lst); res = [list(i) for i in tmp]`
 
 `temp = {tuple(i) for i in lst}; res = [list(i) for i in temp]`
 
@@ -353,6 +353,54 @@ class Solution:
   - 如果该字符配额变负数 = 当前窗口里这个字符**多出来了**，必须移动左边界收缩窗口，把多余字符剔除
 - 收缩完窗口后，如果当前窗口长度刚好等于 `k`，说明窗口内字符刚好和 `p` 频次完全匹配（异位词），把左边界 `l` 存入结果
 
+## 76. 最小覆盖子串
+
+### 题目
+
+给定两个字符串s和t，返回s中长度最小的覆盖t中所有字符（包括重复字符）的子串，若没有则返回空字符串""。#76 #滑动窗口 #Counter #子串 #子序列
+
+> 输入：s = "ADOBECODEBANC", t = "ABC"
+> 输出："BANC"
+
+### 思路
+
+1. Counter记录目标字符t的字母数量，记为need
+2. 对于滑动窗口window，右指针不断遍历s
+   1. 对于每个s的字符c，如果c属于need，填进window
+   2. 当window[c]等于need[c]，valid+=1，其中valid是当前窗口满足数量的字符个数
+   3. 当valid和need中字母数量相等时，说明窗口已足够覆盖字符t
+3. 现在考虑窗口能否缩小，让左指针收缩
+   1. 观察窗口左边界d=s[left]
+   2. 如果d在need里，再看window[d]是否和need[d]相等，如果相等说明取出d之后，d所代表的字符不再满足，valid-=1；另外因为取出了d，所以window[d]-=1
+   3. 左指针右移，此时d才被取出
+
+```python
+from collections import Counter
+class Solution:
+    def minWindow(self, s: str, t: str) -> str:
+        if len(s)<len(t): 
+            return "" #虽然判断很简单，但是的确可以优化速度
+        need, window = Counter(t), Counter()
+        left = start = valid = 0
+        min_len = len(s)+1 # float('inf')一个绝对大的值，方便后续更新
+        
+        for right,c in enumerate(s):
+            if c in need:
+                window[c]+=1 #Counter的好处是不会因空值报错
+                if window[c]==need[c]: valid+=1
+            while valid==len(need): #左指针准备收缩
+                curr_len = right-left+1
+                if curr_len<min_len:
+                    min_len=curr_len #记录最小子串长度
+                    start=left #记录最小子串起始位
+                d=s[left]
+                if d in need:
+                    if window[d]==need[d]: valid-=1
+                    window[d]-=1
+                left+=1 #左指针移动
+        return "" if min_len==len(s)+1 else s[start:start+min_len]
+```
+
 
 
 ## 栈相关
@@ -637,4 +685,3 @@ nums = [3, 4, 7, 2, -3, 1, 4, 2], k = 7
 二维矩阵求子矩阵和                       →  二维前缀和
 子数组和能被k整除                        →  前缀和模k + 哈希表
 ```
-
