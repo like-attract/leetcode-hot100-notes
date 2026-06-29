@@ -103,7 +103,7 @@ class Solution:
 
 现在就可以跑出来了，用时超过了5%的人……
 
-### 主角
+### 双指针
 
 本题的主角其实是——**双指针**（#283 移动零）
 
@@ -285,7 +285,7 @@ def is_anagram(s, t):
 
 理论上直接替换# b可以降低复杂度，但是本题又来作妖，给了`s=['a']*20001;p=['a']*10000`，所以现在的复杂度$O(n*K)$也很大了。
 
-### 主角
+### 滑动窗口
 
 所以，该怎么办呢？其实我们最开始的思路没错，优化的思路偏了，的确是使用字母的出现次数工具，但是这次是降低遍历的复杂度，或者说**减少嵌套循环**。其实也就是我们的主角——**滑动窗口**。
 
@@ -554,27 +554,7 @@ class Solution:
         return ''.join(stack)
 ```
 
-3. 题#739 每日温度
-
-```python
-# 返回每一天还有几天温度更高（严格高），没有返回0
-# 输入: temperatures = [73,74,75,71,69,72,76,73] 输出: [1,1,4,2,1,1,0,0]
-class Solution:
-    def dailyTemperatures(self, temperatures: List[int]) -> List[int]:
-        n = len(temperatures)
-        ans = [0] * n
-        st = []  # 记录下标，单调递减
-        for i, t in enumerate(temperatures):
-            # 当新温度大于栈内，说明不单调了，剔除
-            while st and t > temperatures[st[-1]]:
-                j = st.pop()
-                # 被剔除说明找到了比他大的，下标相减即是所求
-                ans[j] = i - j
-            st.append(i) # 入栈
-        return ans
-```
-
-4. 题#239 滑动窗口最大值（双端队列deque）
+3. 题#239 滑动窗口最大值（双端队列deque）
 
 ```python
 from collections import deque
@@ -601,11 +581,113 @@ class Solution:
         return ans
 ```
 
+## 单调栈
 
+### 739. 每日温度
+
+```python
+# 返回每一天还有几天温度更高（严格高），没有返回0
+# 输入: temperatures = [73,74,75,71,69,72,76,73] 输出: [1,1,4,2,1,1,0,0]
+class Solution:
+    def dailyTemperatures(self, temperatures: List[int]) -> List[int]:
+        n = len(temperatures)
+        ans = [0] * n
+        st = []  # 记录下标，单调递减
+        for i, t in enumerate(temperatures):
+            # 当新温度大于栈内，说明不单调了，剔除
+            while st and t > temperatures[st[-1]]:
+                j = st.pop()
+                # 被剔除说明找到了比他大的，下标相减即是所求
+                ans[j] = i - j
+            st.append(i) # 入栈
+        return ans
+```
+
+### 42. 接雨水
+
+```python
+# 给定n个非负整数表示每个宽度为1的柱子的高度，计算按此排列的柱子，下雨之后能接多少雨水。
+# 即这些柱子围成的坑的面积，需结合图形理解
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        stack = [] #单调栈，记录下标
+        ans = 0
+
+        for i,h in enumerate(height):
+            while stack and h > height[stack[-1]]: #发现更高的高度
+                a = stack.pop() #弹出，计算a处的水
+                if not stack: #说明到顶了
+                    break
+                width = i-stack[-1]-1 #i-右侧最大，stack[-1]-左侧最大
+                depth = min(h,height[stack[-1]])-height[a]
+                ans+=width*depth #相当于横向算面积
+            stack.append(i)
+        return ans
+```
+
+### 84. 柱状图中的最大矩形
+
+给定 *n* 个非负整数，用来表示柱状图中各个柱子的高度。每个柱子彼此相邻，且宽度为 1 。求在该柱状图中，能够勾勒出来的矩形的最大面积。
+
+```python
+class Solution:
+    def largestRectangleArea(self, heights: List[int]) -> int:
+        st = []
+        max_area = 0
+        heights.append(0)
+
+        for i,h in enumerate(heights):
+            while st and h < heights[st[-1]]:
+                a = st.pop()
+                if st:
+                    width = i-st[-1]-1
+                else:
+                    width = i
+                area = heights[a]*width
+                max_area = max(max_area,area)
+            st.append(i)
+        heights.pop()
+        return max_area
+```
+
+
+
+### 复盘
+
+1. **单调递增栈作用：**
+
+栈里存下标，保证栈内对应柱子高度**从小到大递增**
+
+一旦遇到更小柱子，说明栈顶柱子找到了**右边界**，弹出栈顶，计算这个柱子能构成的最大矩形面积。
+
+2. **技巧：数组末尾补一个 0**
+
+在 `heights.append(0)`，强制把栈里剩余所有元素全部弹出计算，不用额外处理遍历收尾逻辑，写代码最简单。
+
+3. **宽度通用公式（重点）**
+
+弹出栈顶下标 `mid`
+
+- 右边界：当前遍历下标 `i`
+- 左边界：弹出后新的栈顶 `st[-1]`（栈为空则左边界 =-1）
+
+$width = i - st[-1] - 1 \quad area = heights[mid] \times width$
+
+0. 总结
+
+单调栈这个工具的逻辑很简单，代码就是先建立一个空的列表，存储数组下标，通过for循环遍历，while循环保证单调，#42是单调递减的栈，#84是单调递增的栈，当发现不单调了，就说明可以停下来处理栈内的数据了。
+
+实际上，这些方法的操作都很简单，双指针是`left, right=0, len(n)-1`，先把左右指针放在最左和最右，然后通过`while left<right:`开始循环，然后条件判断收缩左右指针--左加右减。
+
+这个“条件判断”其实比起方法来更重要，每道题都是要具体问题具体分析。接雨水里计算坑里的水，最大矩形里计算能围成的矩形面积，得从中得到一个共性的计算公式，而且还得习惯于在单调栈、双指针这样的框架里去分析。
+
+此外，本题#84这个数组末尾补一个0，是一个很妙的技巧，相当于强行增加一个休止符；同样，在#76覆盖子串也有一个异曲同工之妙的技巧——`min_len`的初始值设置一个很大的值（正常循环无法得到的），方便循环启动。
 
 ## 560. 和为K的子数组
 
-**前缀和**：数组 `nums[0..i]` 所有元素的和，记作 `prefix[i]`。----数列前i项和$S_i$
+### 前缀和
+
+数组 `nums[0..i]` 所有元素的和，记作 `prefix[i]`。----数列前i项和$S_i$
 
 ```
 prefix[i] = nums[0] + nums[1] + ... + nums[i]
@@ -635,7 +717,7 @@ sum(nums[l..r]) = prefix[r] - prefix[l-1]
 
 ---
 
-### 思路
+### 思路：前缀和+哈希表
 
 ```python
 class Solution:
@@ -685,3 +767,125 @@ nums = [3, 4, 7, 2, -3, 1, 4, 2], k = 7
 二维矩阵求子矩阵和                       →  二维前缀和
 子数组和能被k整除                        →  前缀和模k + 哈希表
 ```
+
+## 42. 接雨水
+
+给定一个数组 `height`，代表一排柱子高度，柱子宽度都是 1，下雨后，**两个高柱子中间低洼的地方能接住多少水**，求总接水量。
+
+例子：`height = [0,1,0,2,1,0,1,3,2,1,2,1]`
+
+答案：**6**
+
+核心原理：关注某一根位置i能装多少水，看两边柱子的最高
+
+- weight = max(min(左柱子，右柱子) - 当前柱子高, 0)
+
+### 暴力枚举
+
+```python
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        n = len(height)
+        ans = 0
+
+        for i in range(1,n-1): #两侧装不了水
+            left = max(height[:i])
+            curr = height[i]
+            right = max(height[i+1:])
+
+            ans+=max(0,min(left,right)-curr)        
+        return ans
+```
+
+很明显，双重循环，$O(n)$遍历，切片max最大值$O(k)$，复杂度很高
+
+优化思路：去掉嵌套循环，预处理左右最大值数组，$O(n)$
+
+```python
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        n = len(height)
+        if n<=2: return 0
+        ans = 0
+        left_max = [0]*n #位置i左侧最大值
+        right_max = [0]*n #位置i右侧最大值
+
+        left_max[0]=height[0]
+        for i in range(1,n):
+            left_max[i] = max(left_max[i-1],height[i])
+        
+        right_max[n-1]=height[n-1]
+        for i in range(n-2,-1,-1):
+            right_max[i] = max(height[i],right_max[i+1])
+
+        for i in range(1,n-1): #这里range(n)也行，因为构造的时候天然包含了本身
+            left = left_max[i]
+            curr = height[i]
+            right = right_max[i]
+
+            ans+=max(0,min(left,right)-curr)        
+        return ans
+```
+
+下面从专有方法来思考。
+
+### 双指针
+
+左右指针 `left=0，right=n-1`，维护两个变量 `l_max`（左区间最大值）、`r_max`（右区间最大值）
+
+- 如果 `l_max < r_max`：**左指针位置储水量由左边最大值决定**，处理左指针，左指针右移，哪边小处理哪边
+
+  - 假设左边最高 `l_max` 更小：
+
+    当前 left 位置的短板就是左边高度，右边一定存在更高柱子 `r_max` 兜住水，所以可以直接算出当前位置存水量。
+
+- 反之：右指针位置储水量由右边最大值决定，处理右指针，右指针左移
+
+```python
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        n = len(height)
+        if n<=2: return 0
+        ans = 0
+        left,right = 0,n-1
+        l_max = r_max = 0
+
+        while left<right:
+            l_max = max(l_max,height[left])
+            r_max = max(r_max,height[right])
+            if l_max>r_max:
+                ans+=r_max-height[right]
+                right-=1
+            else:
+                ans+=l_max-height[left]
+                left+=1
+        return ans
+```
+
+### 单调栈
+
+1. **按「竖条」算（前缀最大值 / 双指针）**：一个格子一个格子竖着算，每个位置单独算高度，累加一个个 1×1 小方格水量
+2. **按「横条」算（单调栈）**：**一层一层横着算一整条凹槽的水量**，一段区间整体批量算面积，所以是 `宽度 × 高度(depth)`
+
+单调栈本质：**横向逐层算水的横截面积**，所以公式是 `width * depth` 
+
+```python
+class Solution:
+    def trap(self, height: List[int]) -> int:
+        stack = [] #单调栈，记录下标
+        ans = 0
+
+        for i,h in enumerate(height):
+            while stack and h > height[stack[-1]]: #发现更高的高度
+                a = stack.pop() #弹出，计算a处的水
+                if not stack: #说明到顶了
+                    break
+                width = i-stack[-1]-1 #i-右侧最大，stack[-1]-左侧最大
+                depth = min(h,height[stack[-1]])-height[a]
+                ans+=width*depth #相当于横向算面积
+            stack.append(i)
+        return ans
+```
+
+
+
