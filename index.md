@@ -32,16 +32,26 @@ title: LeetCode Hot100 错题本
 - 字典函数：`new_lst = list(dict.fromkeys(lst))`
 - 推导式：`new_lst = []; [new_lst.append(x) for x in lst if x not in new_lst]`
 
-需要将内部列表转换为元组（因为列表不可哈希，元组可哈希），利用集合去重，最后转回列表
+嵌套列表需要将内部列表转换为元组（因为列表不可哈希，元组可哈希），利用集合去重，最后转回列表
 
 `tmp = set(tuple(i) for i in lst); res = [list(i) for i in tmp]`
 
-`temp = {tuple(i) for i in lst}; res = [list(i) for i in temp]`
+`tmp = {tuple(i) for i in lst}; res = [list(i) for i in tmp]`
 
 **解释：** 
 
-1. **原理**：利用 Python 中 `set`（集合）元素唯一性的特性。由于列表是可变的（不可哈希），不能直接放入集合，因此先将内部列表转换为不可变的 `tuple`（元组）。 
-2. 本题还需要用sorted对数组进行排序，即`sorted(tuple(i))`，不然[1,0,1]和[0,1,1]都会保留
+1. **原理**：存入 set 的元素必须是 **可哈希（hashable）** 类型：
+   ✅ 可哈希：int、str、tuple、float 等不可变类型
+   ❌ 不可哈希：list、dict、set 等可变容器（里面内容可以随时修改，Python 无法稳定算出它的哈希值）
+2. `tuple(i) for i in lst`
+   遍历外层列表里每一个内层小列表，把 [1,2] → (1,2)、[3,4] → (3,4)
+   `set(...)`
+   集合自动剔除重复元组，tmp = {(1,2), (3,4)}
+   `[list(i) for i in tmp]`
+   遍历去重后的元组集合，把元组转回列表，最终结果：
+   `res = [[1,2], [3,4]]`
+3. 写法2`{表达式 for 变量 in 可迭代对象}` 就是**集合推导式**，等价于 `set(生成器)`，写法更精简，运行逻辑、结果一模一样。
+4. 本题还需要用sorted对数组进行排序，即`sorted(tuple(i))`，不然[1,0,1]和[0,1,1]都会保留
 
 ```python
 class Solution:
@@ -129,7 +139,7 @@ class Solution:
                 total = nums[i] + nums[left] + nums[right]
                 if total == 0:
                     ans.append([nums[i], nums[left], nums[right]])
-                    # 跳过重复值 (这一步并未感觉有多重要……)
+                    # 注：跳过重复值（如果不在这步去重的话就得返回答案前用前面的列表元组列表推导式去重）
                     while left < right and nums[left] == nums[left+1]:
                         left += 1
                     while left < right and nums[right] == nums[right-1]:
@@ -143,36 +153,41 @@ class Solution:
         return ans
 ```
 
+注：
+
+```python
+# ...这里不需要sorted，因为已经是i<l<r + nums排序后了
+ans.append(tuple(nums[i],nums[l],nums[r])) 
+# ...
+tmp = {c for c in ans}
+res = [list(i) for i in tmp]
+return res
+```
+
 ### 复盘
 
 | 方法             | 时间复杂度 | 空间 | n=3000 实测 |
 | ---------------- | ---------- | ---- | ----------- |
 | 原代码 `in list` | O(n³)      | O(1) | ~30s        |
-| 预建 set         | O(n²)      | O(n) | 683ms*      |
-| 排序+双指针      | O(n²)      | O(1) | 563ms       |
-| Counter频次法    | O(k²)      | O(k) | 543ms       |
+| 预建 set         | O(n²)      | O(n) | 683 ms*     |
+| 排序+双指针      | O(n²)      | O(1) | 563 ms      |
+| Counter频次法    | O(k²)      | O(k) | 543 ms      |
 
 其实双指针的时间复杂度也是$O(n^2)$，不过这里有几点值得学习的地方，在正式双指针之前，==根据题目特点，有两个去重的语句，也可以缩短一点运行时间==：
 
 - `if nums[i]>0: break`
 - `if i > 0 and nums[i] == nums[i-1]: continue`  
 
-注2：后续在预设set方法里加入nums排序和上面两句，运行时间从1593ms→1363ms→683ms
+注2：后续在预设set方法里加入nums排序和上面两句，运行时间从1593 ms→1363 ms→683 ms
 
-此外，也可能会出现漏掉全是0的情况，可以在输出前加一句判断：` if nums.count(0)>=3 and [0,0,0] not in res: res.append([0,0,0])`
 
-如果数组存在多个0，那[0,0,0]肯定满足，再判断一下是否已经有了，没有就加进去就好了。
 
 最后，延生一个方法：==频次统计 + 分类讨论（O(n + k²)，k 是不同数字个数）==
 
-如果数组中重复数字多，可：
-
-1. 统计每个数的频次 `cnt[x]`
-2. 枚举所有不同的数 `x, y`，计算 `z = -x-y`
-3. 根据频次判断是否可行：
-   - 若 `x == y == z`：需 `cnt[x] >= 3`
-   - 若 `x == y != z`：需 `cnt[x] >= 2` 且 `cnt[z] >= 1`
-   - 若 `x < y < z`：需 `cnt[x], cnt[y], cnt[z] >= 1`
+1. 先用 `Counter` 统计每个数字出现次数，去重拿到有序不重复数字列表 `keys`
+2. 两层循环枚举两个数 `x、y`，算出需要的第三个数 `z = -x-y`
+3. 约束 `z >= y` 保证 `x≤y≤z`，天然避免重复三元组
+4. 判断原数组频次`cnt`是否足够凑出这三个数`need`，满足则加入结果
 
 ```python
 # Counter频次法
@@ -189,14 +204,11 @@ class Solution:
                 if z < y: continue
                 if z not in cnt: continue
                 # 频次检查
-                need = {x:1, y:1, z:1}
-                if x == y: need[x] += 1
-                if y == z: need[y] += 1
-                if x == z: need[x] += 1
+                need = {}
+                for num in (x, y, z):
+                    need[num] = need.get(num, 0) + 1
                 if all(cnt[k] >= need[k] for k in need):
                     res.append([x,y,z])
-        if nums.count(0)>=3 and [0,0,0] not in res:
-            res.append([0,0,0])
         return res
 ```
 
@@ -214,7 +226,7 @@ class Solution:
 
 ### 思路
 
-字母异位词这题之前做过，更准确点说，是面试中被手撕过，#49 字母异位词分组
+字母异位词这题之前做过，更准确点说，是面试中被手撕过，#49 字母异位词分组 #动态规划
 
 ```python
 def word_break(s: str, word_dict: list[str]) -> bool:
