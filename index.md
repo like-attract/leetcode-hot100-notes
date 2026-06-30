@@ -634,23 +634,78 @@ class Solution:
     def largestRectangleArea(self, heights: List[int]) -> int:
         st = []
         max_area = 0
+        # 末尾补零，遍历结束自动把栈内剩余元素全部弹出计算
         heights.append(0)
 
         for i,h in enumerate(heights):
             while st and h < heights[st[-1]]:
-                a = st.pop()
+                mid = st.pop()
                 if st:
                     width = i-st[-1]-1
                 else:
                     width = i
-                area = heights[a]*width
+                area = heights[mid]*width
                 max_area = max(max_area,area)
             st.append(i)
         heights.pop()
         return max_area
 ```
 
+### 85. 最大矩形
 
+给定一个仅包含 `0` 和 `1` 、大小为 `rows x cols` 的二维二进制矩阵，找出只包含 `1` 的最大矩形，并返回其面积。
+
+本质是逐行将 2D 矩阵转为逐行的 1D 直方图，复用 84 题的单调栈解法。
+
+步骤拆解
+
+- 维护一个 height 数组，长度为列数 n。
+- 遍历每一行，更新 height[j]：
+  - 若 matrix[i][j] == "1"，则 height[j] += 1
+  - 否则 height[j] = 0（被"0"打断，重新计数）
+- 当前行的 height 数组，跑一遍 84 题的单调递增栈，求出当前直方图的最大矩形面积。
+- 全局保留最大值。
+
+```python
+class Solution:
+    def maximalRectangle(self, matrix: List[List[str]]) -> int:
+        heights = []
+        max_area = 0
+        for c in matrix: #添加末尾0哨兵             
+            c.append("0")
+        
+        for c in matrix:
+            c = [int(t) for t in c]
+            if heights==[]:
+                heights=c
+            else:
+                for i in range(len(heights)):
+                    heights[i]=0 if c[i]==0 else heights[i]+c[i]
+            st=[] # 每行重新进行#84的单调栈，st得清空
+            for i,h in enumerate(heights):
+                while st and h<heights[st[-1]]:
+                    mid = st.pop()
+                    # 宽度永远是左右边界
+                    width = i-st[-1]-1 if st else i
+                    area = width*heights[mid]
+                    max_area = max(area,max_area)
+                st.append(i)
+        for c in matrix: #还原矩阵
+            c.pop()
+        return max_area
+```
+
+当然，这里**原地修改原矩阵 `c.append("0") / c.pop()`**
+
+在极端场景会导致数组长度异常，更好做法是用临时数组拼接哨兵，不动原`matrix`，而且某包觉得改原数组不优雅。
+
+```python
+# ...删除首尾两个for循环
+tmp = heights + [0] #临时加哨兵0
+st=[]
+for i,h in enumerate(tmp):
+# ...后续不变
+```
 
 ### 复盘
 
