@@ -1,9 +1,9 @@
 ---
 layout: default
-title: LeetCode Hot100 错题本
+title: LeetCode Hot100 做题本
 ---
 
-# LeetCode Hot100 错题本
+# LeetCode Hot100 做题本
 
 记录我刷 Hot100 时做错、想复杂、没想到关键思路的题。先把所有错题放在这一个 Markdown 文件里，方便坚持更新；等内容多了以后，再拆成数组、链表、动态规划等专题。
 
@@ -956,3 +956,564 @@ class Solution:
 
 
 
+## 238. 除了自身以外数组的乘积
+
+给你一个整数数组 `nums`，返回 数组 `answer` ，其中 `answer[i]` 等于 `nums` 中除了 `nums[i]` 之外其余各元素的乘积 。
+
+请 **不要使用除法，**且在 `O(n)` 时间复杂度内完成此题。
+
+- `2 <= nums.length <= 105`
+- `-30 <= nums[i] <= 30`
+
+```markdown
+输入: nums = [1,2,3,4]
+输出: [24,12,8,6]
+```
+
+### 想法1-轮转数组
+
+基于前一道题的启发（#189 轮转数组），我想对于数组第i个元素，计算数组元素向左轮转i个位置后，除去第一个元素其余元素的乘积，即可完成本题。
+
+```python
+def rotate_left(nums_new: List[int], k: int) -> List:
+    nums = nums_new.copy()
+    n = len(nums)
+    if k>0 and n>1:
+        k=k % n
+        tmp = nums[:k]
+        for j in range(n-k):
+            nums[j]=nums[j+k]
+        nums[n-k:]=tmp
+    return nums
+def rotate_left2(nums,k):
+    nums_new = nums.copy()
+    nums_new[:] = nums_new[k:]+nums_new[:k]
+    return nums_new
+import math
+for i in range(4):
+    tmp = rotate_left([1,2,3,4],i)
+    print(tmp)
+    print(math.prod(tmp[1:]))
+```
+
+但是很明显，数组轮转的复杂度是O(n)，外面的遍历也是O(n)，所以很容易超时。而且，`prod`方法计算乘积用的是数组切片，复杂度依旧是O(n)，虽然本题里不影响最终复杂度是O(n²)。
+
+### 想法2-前缀积
+
+为了去掉嵌套循环，我们可以提前计算数组的前i项乘积，后i项乘积，这样计算的时候只要O(1)取数，复杂度就降下来了。
+
+- 注意这里也不能使用`math.prod`来计算乘积，不然复杂度又超了
+- 其实类似于*前缀和*的思想，这里是“前缀积”，“后缀积”
+
+```python
+class Solution:
+    def productExceptSelf(self, nums: List[int]) -> List[int]:
+        n,ans = len(nums),[]
+        prev_ans, last_ans = [nums[0]]*n,[nums[-1]]*n
+        
+        for i in range(1,n):
+            prev_ans[i]=prev_ans[i-1]*nums[i]
+        for i in range(n-2,-1,-1):
+            last_ans[i]=last_ans[i+1]*nums[i]
+        for i in range(len(nums)):
+            left = prev_ans[i-1] if i>=1 else 1
+            right = last_ans[i+1] if i<n-1 else 1
+            ans.append(left*right)
+        return ans
+```
+
+### MORE-额外空间复杂度O(1)
+
+```python
+def productExceptSelf(nums):
+    n = len(nums)
+    answer = [1] * n
+
+    # 第一遍：前缀积（左边所有数的乘积）
+    prefix = 1
+    for i in range(n):
+        answer[i] = prefix
+        prefix *= nums[i]
+
+    # 第二遍：后缀积 × 已存的前缀积
+    suffix = 1
+    for i in range(n - 1, -1, -1):
+        answer[i] *= suffix
+        suffix *= nums[i]
+
+    return answer
+```
+
+第一次遍历只乘前面的，第二次遍历再乘后面的，用 `answer` 数组暂存前缀积结果，省掉了额外空间。
+
+
+
+## 有效括号相关
+
+### 1. 判断字符串是否有效
+
+#20 给定一个只包括 `'('`，`')'`，`'{'`，`'}'`，`'['`，`']'` 的字符串 `s` ，判断字符串是否有效。
+
+有效字符串需满足：
+
+1. 左括号必须用相同类型的右括号闭合。
+2. 左括号必须以正确的顺序闭合。
+3. 每个右括号都有一个对应的相同类型的左括号。
+
+```python
+class Solution:
+    def isValid(self, s: str) -> bool:
+        dic = {')':'(',']':'[','}':'{'}
+        stack = []
+        for c in s:
+            if stack and c in dic:
+                if stack[-1] == dic[c]:
+                    stack.pop()
+                else:
+                    return False
+            else:
+                stack.append(c)
+        return not stack
+```
+
+### 2. 计算最长合法括号前缀长度
+
+从字符串第一个字符开始，计算连续的左右括号完全匹配的子串长度。
+
+```python
+s = input().strip()
+balance = max_length = 0
+
+for i,ch in enumerate(s):
+    if ch == '(':
+        balance += 1
+    elif ch == ')':
+        balance -= 1
+    
+    if balance < 0: # 若小于0，说明右括号更多，前缀非法，停止
+        break
+
+    if balance == 0:
+        max_length = i + 1
+print(max_length)
+```
+
+### 3. 带适配符`*`的字符串有效判断
+
+#678 给你一个只包含三种字符的字符串，支持的字符类型分别是 `'('`、`')'` 和 `'*'`。请你检验这个字符串是否为有效字符串，如果是 **有效** 字符串返回 `true` 。
+
+- `'*'` 可以被视为单个右括号 `')'` ，或单个左括号 `'('` ，或一个空字符串 `""`。
+
+**方法一：双栈解法**
+
+开两个栈：
+
+- left：存左括号下标
+
+- star：存星号下标
+
+  遇到右括号时：
+
+1. 优先匹配左括号
+
+2. 无左括号就消耗一个星号当左括号
+
+3. 都没有直接 False
+
+   遍历完后，剩余左括号用后面的星号逐个抵消
+
+```python
+class Solution:
+    def checkValidString(self, s: str) -> bool:
+        left = []
+        star = []
+        for idx, c in enumerate(s):
+            if c == '(':
+                left.append(idx)
+            elif c == '*':
+                star.append(idx)
+            else:
+                if left:
+                    left.pop()
+                elif star:
+                    star.pop()
+                else:
+                    return False
+        # 剩余左括号，用后面的星抵消
+        while left and star:
+            if left.pop() > star.pop():
+                return False
+        return not left
+```
+
+**方法2：贪心算法**
+
+维护两个变量：
+
+- low：当前最少未匹配左括号数量（* 尽量当右括号用抵消左括号）
+- high：当前最多未匹配左括号数量（* 全部当作左括号）
+
+规则：
+
+- 遇到 (：low += 1，high += 1
+- 遇到 )：low -= 1，high -= 1
+- 遇到 *：low -= 1，high += 1
+- low 不能小于 0，最少左括号不能为负，负数强制拉回 0，
+- 中途如果 high < 0，直接 False（再多星也补不上右括号）
+  遍历结束：判断 low == 0
+
+```python
+class Solution:
+    def checkValidString(self, s: str) -> bool:
+        low = high = 0
+        for c in s:
+            if c == '(':
+                low += 1
+                high += 1
+            elif c == ')':
+                low -= 1
+                high -= 1
+            else: # *
+                low -= 1 #全当 ")"
+                high += 1 #全当 "("
+            
+            if high < 0: #说明 ")"过多
+                return False
+            if low < 0: #说明 *+) 比 ( 多
+                low = 0
+        return low == 0
+```
+
+### 4. 最长有效括号
+
+#32 给你一个只包含 `'('` 和 `')'` 的字符串，找出最长有效（格式正确且连续）括号子串的长度。
+
+#### 思路一：栈 + 配对标记
+
+从左到右遍历字符串 s，对于右括号，找左侧最近的未配对的左括号，然后把这一对括号标记为「已配对」。
+
+为方便找到左侧最近的未配对的左括号，我们可以用一个栈保存遍历过的左括号的下标：
+
+- 遇到左括号，把其下标入栈。
+- 遇到右括号，且栈非空，那么弹出栈顶。这样遍历到下一个右括号时，栈顶总是最近的未配对的左括号的下标。
+
+最后，最长连续已配对标记的长度，就是最长有效括号的长度。
+
+```python
+class Solution:
+    def longestValidParentheses(self, s: str) -> int:
+        n = len(s)
+        is_valid = [False] * n
+        st = []  # 未配对的左括号的下标
+
+        # 标记哪些括号是配对的
+        for i, ch in enumerate(s):
+            if ch == '(':
+                st.append(i)  # 保存左括号的下标
+            elif st:  # 右括号与栈顶的左括号配对
+                is_valid[i] = is_valid[st.pop()] = True
+
+        # 最长有效括号即为 is_valid 中的最长连续 True
+        ans = cnt = 0
+        for b in is_valid:
+            if b:
+                cnt += 1  # 连续 True 的个数
+                ans = max(ans, cnt)
+            else:
+                cnt = 0  # 重置计数器
+        return ans
+```
+
+#### 思路二：DP + 栈
+
+```
+dp[i] = (i - top + 1) + dp[top - 1]
+```
+
+1. `i - top + 1`：当前 `s[top]~s[i]` 这一整段匹配括号的长度；
+2. `dp[top - 1]`：匹配左括号**前面相邻位置**已经存在的合法括号长度；
+
+```python
+class Solution:
+    def longestValidParentheses(self, s: str) -> int:
+        n = len(s)
+        dp = [0] * n
+        stk = []
+        for i, c in enumerate(s):
+            if c == '(':
+                stk.append(i)
+            elif stk:
+                top = stk.pop()
+                pre = dp[top - 1] if top else 0
+                # 当前匹配长度+前相邻位置长度
+                dp[i] = i - top + 1 + pre
+        return max(dp) if dp else 0
+```
+
+## 动态规划DP相关
+
+==初始化：求最小值初始要设无穷大，求最大值初始设 0==；不要混用 - 1 做未访问标记
+
+```
+# DP 解题步骤：
+# 1. 定义状态 dp[i] 的含义
+# 2. 推导状态转移方程
+# 3. 确定初始条件（base case）
+# 4. 确定遍历顺序
+# 5. 考虑空间优化（滚动数组）
+```
+
+1. 外层循环：先循环物品还是先循环体积？
+   - 决定：**是否考虑顺序**（排列vs组合）
+2. 内层循环方向：正序还是倒序？
+   - 决定：**物品能否重复使用**（完全背包vs 0-1背包）
+
+### 1. 最大子数和
+
+#53 给你一个整数数组 `nums` ，请你找出一个具有最大和的连续子数组（子数组最少包含一个元素），返回其最大和。
+
+```python
+class Solution:
+    def maxSubArray(self, nums: List[int]) -> int:
+        n = len(nums)
+        dp=[0]*n
+        dp[0]=nums[0]
+        ans = nums[0]
+        for i in range(1,n):
+            dp[i] = max(nums[i], dp[i-1]+nums[i])
+            ans = max(ans, dp[i])
+        return ans
+```
+
+### 2. 最大子数积
+
+#152 给你一个整数数组 `nums` ，请你找出数组中乘积最大的非空连续 子数组（该子数组中至少包含一个数字），并返回该子数组所对应的乘积。
+
+本题的“积”和上题的“和”区别最大的地方在于“负负得正”，不能只看最大值，因为最小值可能因为下一个负数摇身一变更大的值。
+
+```python
+class Solution:
+    def maxProduct(self, nums: List[int]) -> int:
+        n = len(nums)
+        f_max = [0] * n
+        f_min = [0] * n
+        f_max[0] = f_min[0] = nums[0]
+        for i in range(1, n):
+            x = nums[i]
+            # 把 x 加到右端点为 i-1 的（乘积最大/最小）子数组后面，
+            # 或者单独组成一个子数组，只有 x 一个元素
+            f_max[i] = max(f_max[i-1]*x, f_min[i-1]*x, x)
+            f_min[i] = min(f_max[i-1]*x, f_min[i-1]*x, x)
+        return max(f_max)
+
+	# 空间优化版
+    def maxProduct(self, nums: List[int]) -> int:
+        cur_max = nums[0]
+        cur_min = nums[0]
+        ans = nums[0]
+        for num in nums[1:]:
+            a, b = cur_max*num, cur_min*num
+            cur_max, cur_min = max(num, a, b), min(num, a, b)
+            ans = max(ans, cur_max)
+        return ans
+```
+
+### 3. 完全平方数
+
+#279 给你一个整数 `n` ，返回和为 `n` 的完全平方数的最少数量。
+
+思路：联系#1553 吃橘子问题，每次吃有3种方式，递推式是
+
+`f(n) = 1 + min(f(n-1), f(n//2)+n%2, f(n//3)+n%3)`
+
+本题想吃掉`n`的话，每次吃的方式=所有小于等于n的平方数的个数。
+
+```
+279/322（背包型）:  dp[i] = min(dp[i], dp[i - 物品] + 1)
+                  外层遍历"容量"，内层遍历"物品/平方数"
+```
+
+```python
+class Solution:
+    def numSquares(self, n: int) -> int:
+        if n<=3: return n
+        a = int(sqrt(n))
+        # 这里既可以i**2，i的平方；也可以i*i
+        squares = [i**2 for i in range(1,a+1)]
+
+        dp=[0]*(n+1)
+        for i in range(1,n+1):
+            # 注：最基本的方式，用1累加
+            dp[i]=dp[i-squares[0]]+squares[0]
+            j=1
+            while j<a and i>=squares[j]:
+                # 用每个小于i的平方数来比较
+                dp[i]=min(dp[i-squares[j]]+1,dp[i])
+                j+=1
+        return dp[n]
+    
+    # 注意到，其实squares可以用j从1到sqrt(i)来枚举
+        for i in range(1,n+1):
+            dp[i] = dp[i-1]+1
+            j = 1
+            while j*j<=i:
+                dp[i] = min(dp[i-j*j]+1,dp[i])
+                j+=1
+                
+    # 也可以把最基本的方式从循环中拿出，再换一个循环写法
+        dp = list(range(n+1))  # 初始最坏：全由1相加，dp[i]=i
+        for i in range(1, n+1):
+            for s in squares:
+                if s > i:
+                    break
+                if dp[i - s] + 1 < dp[i]:
+                    dp[i] = dp[i - s] + 1
+```
+
+Tips：**初始化的重要性**
+
+其实`dp[i-1]+1`也属于`dp[i-j*j]+1`，但是如果去掉*注*的基本方式代码就会报错，仔细想想，这一步本质上还是在给`dp = [0]*(n+1)`的初始化擦屁股。还记得我们的口诀“求最大值定义初始0，求最小值定义无穷大”，本题是最少数量，定义为0的话，在min的比较就会失效，换成无穷大，本题就可以再简便一点：
+
+```python
+class Solution:
+    def numSquares(self, n: int) -> int:
+        if n<=3: return n
+        dp = [float('inf')] * (n+1)
+        dp[0]=0
+
+        for i in range(1,n+1):
+            j = 1
+            while j*j<=i:
+                dp[i] = min(dp[i-j*j]+1,dp[i])
+                j+=1
+        return dp[n]
+```
+
+### 4. 零钱兑换
+
+#322 给你一个整数数组 `coins` ，表示不同面额的硬币，数量无限；以及一个整数 `amount` ，表示总金额。计算并返回可以凑成总金额所需的 **最少的硬币个数** 。如果没有任何一种硬币组合能组成总金额，返回 `-1` 。
+
+一开始做这题的时候，总是觉得这个`coins`不如上一题的`squares`规范，从1开始，所以就越写越复杂，现在复盘的时候发现，换汤不换药。
+
+```python
+class Solution:
+    def coinChange(self, coins: List[int], amount: int) -> int:
+        # 最小值初始化无穷大
+        INF = float('inf')
+        dp = [INF]*(amount+1)
+        dp[0] = 0 # 金额0需要0个硬币
+
+        for i in range(1,amount+1):
+            for c in coins:
+                if c>i:
+                    continue #这里是真没绷住
+                if dp[i-c]+1<dp[i]:
+                    dp[i] = dp[i-c]+1
+        return dp[amount] if dp[amount]!=INF else -1
+```
+
+Tips：**break和continue**
+
+上一题这里用break没问题是因为`squares`是从小到大排序过的列表，发现某个c大于i之后，后面的就无需判断可以直接break；但是本题的coins是乱序的，如果想用break需要先`sort`一下，不然就得continue。其实还不如合并两个if：
+
+```python
+if c<=i and dp[i-c]+1<dp[i]: dp[i]=dp[i-c]+1
+```
+
+### 5. 分割等和子集
+
+#416 给你一个 **只包含正整数** 的 **非空** 数组 `nums` 。请你判断是否可以将这个数组分割成两个子集，使得两个子集的元素和相等。
+
+#### 思路一：找总和等于一半的子集
+
+```python
+def can_partition_half(nums):
+    total = sum(nums)
+    if total % 2: #总和为奇数直接false
+        return False
+    target = total // 2
+    n = len(nums)
+
+    INF = n + 1
+    dp = [INF] * (target + 1)
+    dp[0] = 0 # dp[s]表示达到和s所需的最少元素个数
+
+    for num in nums:
+        for s in range(target, num - 1, -1):
+            if dp[s - num] + 1 < dp[s]:
+                dp[s] = dp[s - num] + 1
+
+    return dp[target] <= n // 2
+```
+
+#### 思路二：布尔DP
+
+当前DP存「最少个数」其实没必要，这题只关心**能不能凑出 target**，不用统计用几个数，代码会更短更快。
+
+```python
+def can_partition_half(nums):
+    total = sum(nums)
+    if total % 2:
+        return False
+    target = total // 2
+    dp = [False] * (target + 1)
+    dp[0] = True
+    # 等价：dp = [True] + [False]*target
+    for num in nums:
+        for s in range(target, num - 1, -1):
+            dp[s] |= dp[s - num]
+            # 等价：dp[s] = dp[s] or dp[s-num]
+    return dp[target]
+```
+
+本题相对于4.和5.的完全背包，属于0-1背包，有几个注意点：
+
+- 外层循环：遍历每个数字 `for num in nums:`
+  逐个处理数组里的数字 num，每个数字只有两种选择：选 / 不选（01 背包，每个元素只能用一次）
+
+- 内层倒序循环（01 背包核心）`for s in range(target, num - 1, -1):`
+  从 target 往 num 倒着遍历和 s
+  下限 num-1：当 s < num 时，当前数字比目标和还大，根本不能选，直接跳过不用计算
+- 为什么倒序？
+  如果从小到大正序，更新小的 `dp[s]` 后，后面更大的 s 会重复复用同一个 num，变成「完全背包（数字无限用）」；
+  倒序保证本轮更新只会用到上一轮未修改的旧数据，每个数字只使用一次。
+
+
+
+### 6. 最长递增子序列
+
+#300 给你一个整数数组 `nums` ，找到其中最长严格递增子序列的长度。（子序列不要求连续）
+
+#### 解法1：动态规划 O(n²)
+
+```
+300（LIS 型）:     dp[i] = max(dp[i], dp[j] + 1)  where j < i and nums[j] < nums[i]
+                  外层遍历"当前元素"，内层遍历"之前所有元素"
+```
+
+```python
+def lengthOfLIS(nums: list[int]) -> int:
+    dp = [1] * len(nums)
+    for i in range(len(nums)):
+        for j in range(i):
+            if nums[j] < nums[i]:
+                dp[i] = max(dp[i], dp[j] + 1)
+    return max(dp)
+```
+
+#### 解法2：贪心 + 二分查找 O(n log n)
+
+维护数组 `tails`，其中 `tails[i]` 表示长度为 `i+1` 的递增子序列的最小末尾元素。
+
+```python
+def lengthOfLIS(nums: list[int]) -> int:
+    import bisect
+    tails = []
+    for x in nums:
+        i = bisect.bisect_left(tails, x)
+        if i == len(tails):
+            tails.append(x)
+        else:
+            tails[i] = x
+    return len(tails)
+```
