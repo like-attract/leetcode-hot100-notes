@@ -1,11 +1,11 @@
 ---
 layout: default
-title: LeetCode Hot100 做题本
+title: LeetCode Hot 100 做题本
 ---
 
-# LeetCode Hot100 做题本
+# LeetCode Hot 100 做题本
 
-记录我刷 Hot100 时做错、想复杂、没想到关键思路的题。先把所有错题放在这一个 Markdown 文件里，方便坚持更新；等内容多了以后，再拆成数组、链表、动态规划等专题。
+记录我刷 [LeetCode Hot 100](https://leetcode.cn/studyplan/top-100-liked/)时做错、想复杂、没想到关键思路的题。先把所有错题放在这一个 Markdown 文件里，方便坚持更新；等内容多了以后，再拆成数组、链表、动态规划等专题。
 
 ## 目录
 
