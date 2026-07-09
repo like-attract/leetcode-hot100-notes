@@ -224,9 +224,20 @@ class Solution:
 >
 > 输出：[0,6]
 
-### 思路
+### 相似题
 
-字母异位词这题之前做过，更准确点说，是面试中被手撕过，#49 字母异位词分组 #动态规划
+#### 139.单词拆分
+
+字母异位词这题之前做过，更准确点说，是面试中被手撕过，#139 #动态规划 #字符串
+
+给你一个字符串 `s` 和一个字符串列表 `wordDict` 作为字典。如果可以利用字典中出现的一个或多个单词拼接出 `s` 则返回 `true`。
+
+**注意：**不要求字典中出现的单词全部都使用，并且字典中的单词可以重复使用。
+
+```
+输入: s = "catsandog", wordDict = ["cats", "dog", "sand", "and", "cat"]
+输出: false
+```
 
 ```python
 def word_break(s: str, word_dict: list[str]) -> bool:
@@ -248,9 +259,36 @@ def word_break(s: str, word_dict: list[str]) -> bool:
     return dp[n]
 ```
 
-做# 438的过程有点不顺利，因为我想起# 49使用了集合set、动态规划，结果让自己越写越迷茫，有种技多压身，因为不精反而寸步难行。
+做# 438的过程有点不顺利，因为我想起# 139使用了集合set、动态规划，结果让自己越写越迷茫，有种技多压身，因为不精反而寸步难行。
 
-复盘一下# 49的做法：首先对词典`word_set`进行集合化，这一步其实不是必须，只是锦上添花；然后是常规的动态规划三要素：定义状态、初始化、状态转移。
+复盘一下# 139的做法：首先对词典`word_set`进行集合化，这一步其实不是必须，只是锦上添花；然后是常规的动态规划三要素：定义状态、初始化、状态转移。
+
+#### 49.字母异位词分组
+
+给你一个字符串数组，请你将 字母异位词 组合在一起。可以按任意顺序返回结果列表。#49 #哈希表 #字符串 #排序
+
+```
+输入: strs = ["eat", "tea", "tan", "ate", "nat", "bat"]
+
+输出: [["bat"],["nat","tan"],["ate","eat","tea"]]
+```
+
+```python
+class Solution:
+    def groupAnagrams(self, strs: List[str]) -> List[List[str]]:
+        hashmap = {}
+        for val in strs:
+            key = "".join(sorted(val))
+            if key not in hashmap:
+                hashmap[key] = []
+            hashmap[key].append(val)
+        
+        return list(hashmap.values())
+```
+
+其实真正相似的是49题，而139题由于是真实面试经历所以有点PTSD了。很正常，看山是山到看山不是山的阶段，多思考，多复习。
+
+### 思路
 
 回到这题，如果没有什么好的思路的话，其实可以先暴力手撕，再去考虑如何优化时间复杂度。要知道一件事情，先做出来，才能考虑优化，要知道哪个是主干，哪个是开枝散叶：
 
@@ -276,6 +314,7 @@ class Solution:
 既然集合走不通，就想着另外一条路，降低匹配的复杂度，匹配的核心目的是看切片的子串和所需的p是否字母完全相同，sorted很直观，排序后比较是否相等，但其实有个更直观的，字母的出现次数是否完全相同。
 
 ```python
+# 判断字母出现次数是否完全相同
 def is_anagram(s: str, t: str) -> bool:
     if len(s) != len(t):
         return False
@@ -286,6 +325,7 @@ def is_anagram(s: str, t: str) -> bool:
         cnt[ord(c)-ord('a')] -= 1
     return all(x == 0 for x in cnt)
 
+# 本质是字典记录单词出现次数，再对比；而counter可以快速完成上面的for循环
 from collections import Counter
 def is_anagram(s, t):
     return Counter(s) == Counter(t)
@@ -337,31 +377,59 @@ class Solution:
 
 显而易见，此时只是多个for循环，复杂度为$O(n+k)\rightarrow O(n)$
 
-但其实可以再简便一点，使用我们的Counter函数：
+这里我们的窗口滑动是借助`count_win`来体现，第一次for循环保证了窗口长度为k，第二次继续遍历剩余位置的时候，保证左右字符一出一进同步进行，每次对比频次是否相同（哈希表记录字母的频次）。
+
+### Counter+滑动窗口
+
+前面我们介绍了counter，所以也可以用counter来简化代码：
 
 ```python
-from collections import Counter
 class Solution:
     def findAnagrams(self, s: str, p: str) -> List[int]:
-        d, k = Counter(p), len(p)
-        l = 0
+        count_p,count_win = Counter(p),Counter()
         res = []
-        for i, j in enumerate(s):
-            d[j] -= 1
-            while l <= i and d[j] < 0:
-                d[s[l]] += 1
-                l += 1
-            if i-l+1 == k:
+
+        for right,c in enumerate(s):
+            # 更新右字符
+            count_win[c]+=1
+            left = right-len(p)+1
+            if left<0: #在窗口有len(p)个字母之前都不管
+                continue
+            if count_p==count_win:
+                res.append(left)
+            # 删除左字符
+            count_win[s[left]]-=1
+        return res
+```
+
+可以看到这里是固定窗口长度，且`Counter(p)`生成后仅用于统计p的字符串方便比对是否是异位词。
+
+但其实也可以换一种思路，将其视为需要凑齐的字符配额，在向前遍历的过程中，通过不断调整窗口的字符个数（使其不超过p中的个数），通过窗口长度符合`len(p)`来判断是否异位词，具体而言：
+
+```python
+class Solution:
+    def findAnagrams(self, s: str, p: str) -> List[int]:
+        l,k = 0,len(p)
+        need = Counter(p) #初始需要字符个数是正的
+        res=[]
+
+        for r,c in enumerate(s):
+            need[c]-=1
+            # 如果数量负数说明这个字符是不需要的
+            while l<=r and need[c]<0:
+                need[s[l]]+=1
+                l+=1
+            if r-l+1==k:
                 res.append(l)
         return res
 ```
 
-- `Counter(p)`：统计模式串 `p` 每个字母出现次数，字典 `d` 初始是**需要凑齐的字符配额**
+- `Counter(p)`：统计模式串 `p` 每个字母出现次数，字典 `need` 初始是**需要凑齐的字符配额**
 - `k`：模式串 `p` 的长度，我们要找的窗口固定长度就是 `k`
-- `l = 0`：滑动窗口**左边界**，`i` 是循环变量充当**右边界**
-- 用字典 `d` 记录 `p` 每个字符**还缺多少个**
-- 右指针 `i` 逐个向右遍历字符 `j=s[i]`：
-  - 消耗一个配额：`d[j] -= 1`
+- `l = 0`：滑动窗口**左边界**，`r` 是循环变量充当**右边界**
+- 用字典 `need` 记录 `p` 每个字符**还缺多少个**
+- 右指针 `r` 逐个向右遍历字符 `c=s[r]`：
+  - 消耗一个配额：`need[c] -= 1`
   - 如果该字符配额变负数 = 当前窗口里这个字符**多出来了**，必须移动左边界收缩窗口，把多余字符剔除
 - 收缩完窗口后，如果当前窗口长度刚好等于 `k`，说明窗口内字符刚好和 `p` 频次完全匹配（异位词），把左边界 `l` 存入结果
 
@@ -398,7 +466,7 @@ class Solution:
         
         for right,c in enumerate(s):
             if c in need:
-                window[c]+=1 #Counter的好处是不会因空值报错
+                window[c]+=1 #Counter的好处是不会因空值报错,defaultdict也可以
                 if window[c]==need[c]: valid+=1
             while valid==len(need): #左指针准备收缩
                 curr_len = right-left+1
