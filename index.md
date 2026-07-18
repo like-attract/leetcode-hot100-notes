@@ -6,7 +6,7 @@ permalink: /
 
 # LeetCode Hot 100 做题本
 
-<p class="home-lead">记录刷题时做错、想复杂和没想到关键思路的题，并按解题方法持续整理。</p>
+<p class="home-lead">记录练习 <a href="https://leetcode.cn/studyplan/top-100-liked/">LeetCode 热题 100</a> 时做错、想复杂和没想到关键思路的题，并按解题方法持续整理。</p>
 
 <div class="topic-grid">
   <a class="topic-card" href="{{ '/notes/array-string/' | relative_url }}"><strong>数组与字符串</strong><span>双指针、滑动窗口、前缀和与前缀积</span></a>
