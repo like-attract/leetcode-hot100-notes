@@ -10,8 +10,12 @@
   </head>
   <body>
     <header class="site-header" role="banner">
-      <div class="wrapper">
+      <div class="wrapper site-header-inner">
         <a class="site-title" rel="author" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
+        <nav class="topic-nav" aria-label="主要导航">
+          <a href="{{ '/' | relative_url }}">专题首页</a>
+          <a href="https://github.com/like-attract/leetcode-hot100-notes">GitHub</a>
+        </nav>
       </div>
     </header>
 
