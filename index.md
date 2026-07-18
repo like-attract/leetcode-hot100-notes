@@ -17,9 +17,3 @@ permalink: /
   <a class="topic-card" href="{{ '/notes/greedy/' | relative_url }}"><strong>贪心算法</strong><span>股票、跳跃游戏与区间划分</span></a>
   <a class="topic-card" href="{{ '/notes/matrix/' | relative_url }}"><strong>矩阵</strong><span>NumPy 创建、索引、运算与线性代数</span></a>
 </div>
-
-## 使用方式
-
-- 在 Typora 中打开 `docs` 目录下对应专题的 Markdown 文件继续记录。
-- 新增题目时，放到最匹配的专题；没有合适分类时再创建新文件。
-- 运行 `sync-notes.bat` 后，GitHub Pages 会同步更新首页和专题页。
